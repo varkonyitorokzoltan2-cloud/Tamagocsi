@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tamagotchi v1.0 - Cuki Bárányka</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Fredoka', cursive, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .pixel-font {
+      font-family: 'Press Start 2P', monospace;
+    }
+    /* Tamagotchi Handheld Case Glow & Shadows */
+    .tamagotchi-case {
+      background: linear-gradient(145deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+      box-shadow: 0 20px 50px rgba(255, 105, 180, 0.4), inset 0 -8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .screen-border {
+      background: #4a5568;
+      box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+    /* Pulse alert animation when sheep has a wish */
+    @keyframes screenAlert {
+      0%, 100% { box-shadow: inset 0 0 0px transparent; }
+      50% { box-shadow: inset 0 0 25px #ff4757; }
+    }
+    .alert-active {
+      animation: screenAlert 1.2s infinite;
+    }
+
+    /* Sheep & Props Wish Animations */
+    .animate-breathe {
+      animation: breathe 3s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03) translateY(-2px); }
+    }
+
+    .animate-toporgas {
+      animation: toporgas 0.35s infinite alternate ease-in-out !important;
+    }
+    @keyframes toporgas {
+      0% { transform: translateY(0) rotate(-4deg); }
+      100% { transform: translateY(-6px) rotate(4deg); }
+    }
+
+    .animate-sovargas {
+      animation: sovargas 0.9s infinite alternate ease-in-out !important;
+    }
+    @keyframes sovargas {
+      0% { transform: scale(1) translateX(0); }
+      100% { transform: scale(1.06) translateX(12px); }
+    }
+
+    .animate-ehes-ugras {
+      animation: ehesUgras 0.45s infinite alternate cubic-bezier(0.5, 0.05, 0.1, 1) !important;
+    }
+    @keyframes ehesUgras {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-18px); }
+    }
+
+    .animate-jatek-porges {
+      animation: jatekPorges 1.1s infinite ease-in-out !important;
+    }
+    @keyframes jatekPorges {
+      0% { transform: rotate(0deg) translateX(0); }
+      50% { transform: rotate(12deg) translateX(8px); }
+      100% { transform: rotate(0deg) translateX(0); }
+    }
+
+    .animate-ball-bounce {
+      animation: ballBounce 0.55s infinite alternate ease-in-out;
+    }
+    @keyframes ballBounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-16px); }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col items-center justify-center p-3 sm:p-6 text-slate-800">
+
+<!-- Container for Handheld Device -->
+<div class="relative w-full max-w-sm sm:max-w-md tamagotchi-case rounded-[50px] p-6 sm:p-8 border-4 border-white/50 flex flex-col items-center shadow-2xl">
+
+  <!-- Header Info -->
+  <div class="w-full flex justify-between items-center mb-3 px-2">
+    <span class="pixel-font text-xs text-pink-700 tracking-wider font-bold">BÁRÁNYKA</span>
+    <span class="bg-white/80 backdrop-blur text-pink-600 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">v1.0</span>
+  </div>
+
+  <!-- LCD Screen Frame -->
+  <div class="w-full screen-border p-3 sm:p-4 rounded-3xl relative mb-6">
+    <!-- Actual LCD Screen -->
+    <div id="lcd-screen" class="w-full h-80 sm:h-96 rounded-2xl relative overflow-hidden transition-all duration-700 flex flex-col justify-between p-3 border-2 border-slate-600/50 bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200">
+
+      <!-- Status & Time Header inside LCD -->
+      <div class="flex flex-col gap-1.5 z-10 bg-white/40 backdrop-blur-md rounded-xl p-2 text-xs font-semibold text-slate-700 shadow-sm border border-white/40">
+        <div class="flex justify-between items-center w-full">
+          <div id="clock-display" class="flex items-center gap-1 font-mono text-xs font-bold text-slate-800">
+            🕒 00:00:00
+          </div>
+          <div id="mood-badge" class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-500 text-white font-bold transition-all">
+            Vidám 😊
+          </div>
+        </div>
+
+        <!-- Date & Lifetime Counter Display -->
+        <div class="flex justify-between items-center text-[10px] text-slate-700 border-t border-slate-900/10 pt-1">
+          <span id="date-display" class="font-mono text-slate-600">2026.11.18.</span>
+          <span id="lifetime-display" class="font-mono bg-pink-500/20 px-1.5 py-0.5 rounded text-pink-900 font-bold">Életóra: 0d 00:00:00</span>
+        </div>
+      </div>
+
+      <!-- Wish Alert Bubble / Banner -->
+      <div id="wish-banner" class="z-10 self-center hidden my-1">
+        <div class="bg-amber-400 text-slate-900 font-bold px-3 py-1 rounded-full text-xs shadow-lg flex items-center gap-1.5 animate-bounce border border-amber-200">
+          <span id="wish-icon">❓</span>
+          <span id="wish-text">Kívánság!</span>
+        </div>
+      </div>
+
+      <!-- Main Sheep Character Display -->
+      <div class="relative flex-1 flex items-center justify-center z-0 my-2">
+
+        <!-- Props based on wish -->
+        <div id="prop-item" class="absolute text-4xl filter drop-shadow hidden z-10 transition-all"></div>
+
+        <!-- SVG Cute Sheep -->
+        <div id="sheep-wrapper" class="w-44 sm:w-52 h-44 sm:h-52 animate-breathe filter drop-shadow-md transition-transform duration-300">
+          <svg viewBox="0 0 200 200" class="w-full h-full">
+            <!-- Shadow -->
+            <ellipse cx="100" cy="175" rx="55" ry="12" fill="rgba(0,0,0,0.15)" />
+
+            <!-- Legs -->
+            <rect x="70" y="130" width="14" height="35" rx="7" fill="#4A4A4A"/>
+            <rect x="116" y="130" width="14" height="35" rx="7" fill="#4A4A4A"/>
+            <!-- Hooves -->
+            <rect x="70" y="155" width="14" height="10" rx="2" fill="#222"/>
+            <rect x="116" y="155" width="14" height="10" rx="2" fill="#222"/>
+
+            <!-- Fluffy Wool Body (Overlapping circles) -->
+            <g fill="#F8F9FA" stroke="#E2E8F0" stroke-width="3">
+              <circle cx="70" cy="100" r="30"/>
+              <circle cx="130" cy="100" r="30"/>
+              <circle cx="100" cy="75" r="32"/>
+              <circle cx="100" cy="120" r="32"/>
+              <circle cx="75" cy="120" r="28"/>
+              <circle cx="125" cy="120" r="28"/>
+              <circle cx="100" cy="100" r="45"/>
+            </g>
+
+            <!-- Ears -->
+            <ellipse cx="50" cy="85" rx="18" ry="8" fill="#FCA5A5" transform="rotate(-20 50 85)" stroke="#F87171" stroke-width="2"/>
+            <ellipse cx="150" cy="85" rx="18" ry="8" fill="#FCA5A5" transform="rotate(20 150 85)" stroke="#F87171" stroke-width="2"/>
+
+            <!-- Head / Face -->
+            <ellipse cx="100" cy="98" rx="32" ry="28" fill="#FFEDD5"/>
+
+            <!-- Wool Tuft on Head -->
+            <g fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2">
+              <circle cx="88" cy="72" r="12"/>
+              <circle cx="112" cy="72" r="12"/>
+              <circle cx="100" cy="68" r="14"/>
+            </g>
+
+            <!-- Dynamic Face Features -->
+            <g id="sheep-face">
+              <circle cx="86" cy="95" r="4" fill="#1E293B"/>
+              <circle cx="114" cy="95" r="4" fill="#1E293B"/>
+              <circle cx="84.5" cy="93.5" r="1.5" fill="#FFF"/>
+              <circle cx="112.5" cy="93.5" r="1.5" fill="#FFF"/>
+              <ellipse cx="78" cy="104" rx="5" ry="3" fill="#FCA5A5" opacity="0.7"/>
+              <ellipse cx="122" cy="104" rx="5" ry="3" fill="#FCA5A5" opacity="0.7"/>
+              <path d="M 93 105 Q 100 112 107 105" fill="none" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="z-10 bg-white/50 backdrop-blur-md rounded-xl p-2 grid grid-cols-4 gap-1 text-center text-[10px] font-bold border border-white/40">
+        <div class="flex flex-col items-center">
+          <span class="text-slate-600">Éhség</span>
+          <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-0.5">
+            <div id="bar-hungry" class="bg-emerald-500 h-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-slate-600">Szomj</span>
+          <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-0.5">
+            <div id="bar-thirsty" class="bg-cyan-500 h-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-slate-600">Játék</span>
+          <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-0.5">
+            <div id="bar-play" class="bg-amber-500 h-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-slate-600">Tiszta</span>
+          <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-0.5">
+            <div id="bar-clean" class="bg-purple-500 h-full transition-all duration-300" style="width: 100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Control Buttons -->
+  <div class="w-full grid grid-cols-2 gap-3 mb-3">
+    <button onclick="handleAction('hungry')" class="bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-bold py-3 px-3 rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 border-b-4 border-amber-700">
+      <span class="text-xl">🍏</span>
+      <span>Etetés</span>
+    </button>
+
+    <button onclick="handleAction('thirsty')" class="bg-gradient-to-b from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 text-sky-950 font-bold py-3 px-3 rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 border-b-4 border-sky-700">
+      <span class="text-xl">💧</span>
+      <span>Itatás</span>
+    </button>
+
+    <button onclick="handleAction('play')" class="bg-gradient-to-b from-pink-400 to-pink-500 hover:from-pink-300 hover:to-pink-400 text-pink-950 font-bold py-3 px-3 rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 border-b-4 border-pink-700">
+      <span class="text-xl">⚽</span>
+      <span>Játék</span>
+    </button>
+
+    <button onclick="handleAction('clean')" class="bg-gradient-to-b from-purple-400 to-purple-500 hover:from-purple-300 hover:to-purple-400 text-purple-950 font-bold py-3 px-3 rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 border-b-4 border-purple-700">
+      <span class="text-xl">🧹</span>
+      <span>Takarítás</span>
+    </button>
+  </div>
+
+  <!-- System & Utility Controls Bar -->
+  <div class="w-full bg-white/40 backdrop-blur-md rounded-2xl p-2.5 flex flex-wrap justify-between items-center text-xs gap-2 border border-white/60">
+    <button onclick="requestNotificationPermission()" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition font-semibold shadow-sm flex items-center gap-1">
+      🔔 Értesítés
+    </button>
+
+    <button onclick="toggleWakeLock()" id="wakelock-btn" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition font-semibold shadow-sm flex items-center gap-1">
+      💡 Ébrentartás: KI
+    </button>
+
+    <button onclick="triggerFastForward()" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition font-semibold shadow-sm flex items-center gap-1">
+      ⚡ Kívánság
+    </button>
+  </div>
+
+  <!-- Game Info / Status Message Toast -->
+  <div id="toast-msg" class="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+    Üdvözöl a Bárányka!
+  </div>
+</div>
+
+<script>
+  /* ==========================================
+     GAME STATE & LOCALSTORAGE
+     ========================================== */
+  const state = {
+    hungry: 100,
+    thirsty: 100,
+    play: 100,
+    clean: 100,
+    currentWish: null,
+    audioEnabled: true,
+    isNight: false,
+    simulatedHour: null,
+    mood: 'vidám',
+    startTime: null,
+    lastCheck: Date.now()
+  };
+
+  let wakeLock = null;
+
+  function initStartTime() {
+    let storedStart = localStorage.getItem('tamagotchi_first_launch');
+    if (!storedStart) {
+      storedStart = Date.now().toString();
+      localStorage.setItem('tamagotchi_first_launch', storedStart);
+    }
+    state.startTime = parseInt(storedStart, 10);
+  }
+
+  const WISH_TYPES = [
+    { id: 'hungry', name: 'Éhes', icon: '🍏', actionMsg: 'Finom almát kapott a bárányka!' },
+    { id: 'thirsty', name: 'Szomjas', icon: '💧', actionMsg: 'Friss vizet ivott a bárányka!' },
+    { id: 'play', name: 'Játék', icon: '⚽', actionMsg: 'Vidáman labdázott a bárányka!' },
+    { id: 'clean', name: 'Ürítés', icon: '💩', actionMsg: 'Kitisztítottad a karámot!' }
+  ];
+
+  /* Web Audio API Synthesizer */
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioCtx = new AudioContext();
+    }
+  }
+
+  function playSound(type) {
+    if (!state.audioEnabled) return;
+    initAudio();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+    if (type === 'baah') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(160, now + 0.4);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(800, now);
+      filter.Q.setValueAtTime(3, now);
+
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } else if (type === 'alert') {
+      [523.25, 659.25, 783.99].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+        gain.gain.setValueAtTime(0.15, now + idx * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.1);
+        osc.stop(now + idx * 0.1 + 0.25);
+      });
+    } else if (type === 'happy') {
+      [349.23, 440, 523.25, 698.46].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.2);
+      });
+    }
+  }
+
+  /* Notifications & Wake Lock */
+  function requestNotificationPermission() {
+    if ("Notification" in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          showToast("Értesítések engedélyezve! 🔔");
+        } else {
+          showToast("Értesítések elutasítva ❌");
+        }
+      });
+    } else {
+      showToast("Böngésződ nem támogatja az értesítést.");
+    }
+  }
+
+  function sendSystemNotification(wishObj) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Bárányka Tamagotchi 🐑", {
+        body: `A báránykádnak új kívánsága van: ${wishObj.name}! ${wishObj.icon}`,
+        icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23ff9a9e'/></svg>"
+      });
+    }
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+  }
+
+  async function toggleWakeLock() {
+    try {
+      if (!wakeLock) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        document.getElementById('wakelock-btn').innerText = "💡 Ébrentartás: BE";
+        showToast("Képernyő ébrentartás bekapcsolva");
+      } else {
+        await wakeLock.release();
+        wakeLock = null;
+        document.getElementById('wakelock-btn').innerText = "💡 Ébrentartás: KI";
+        showToast("Képernyő ébrentartás kikapcsolva");
+      }
+    } catch (err) {
+      showToast("Wake Lock nem támogatott.");
+    }
+  }
+
+  /* UI rendering */
+  function updateSheepFace(mood) {
+    const faceGroup = document.getElementById('sheep-face');
+    if (!faceGroup) return;
+
+    if (mood === 'alvó') {
+      faceGroup.innerHTML = `
+                    <path d="M 80 95 Q 86 100 92 95" fill="none" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M 108 95 Q 114 100 120 95" fill="none" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+                    <ellipse cx="78" cy="104" rx="5" ry="3" fill="#FCA5A5" opacity="0.6"/>
+                    <ellipse cx="122" cy="104" rx="5" ry="3" fill="#FCA5A5" opacity="0.6"/>
+                    <circle cx="100" cy="107" r="2" fill="#1E293B"/>
+                    <text x="135" y="75" fill="#6366F1" font-size="16" font-weight="bold" font-family="sans-serif">Zzz...</text>
+                `;
+    } else if (mood === 'mérges') {
+      faceGroup.innerHTML = `
+                    <path d="M 80 87 L 93 93" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M 120 93 L 133 87" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="86" cy="96" r="3.5" fill="#1E293B"/>
+                    <circle cx="114" cy="96" r="3.5" fill="#1E293B"/>
+                    <ellipse cx="78" cy="105" rx="5" ry="3" fill="#EF4444" opacity="0.5"/>
+                    <ellipse cx="122" cy="105" rx="5" ry="3" fill="#EF4444" opacity="0.5"/>
+                    <path d="M 93 110 Q 100 102 107 110" fill="none" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+                `;
+    } else if (mood === 'szomorú') {
+      faceGroup.innerHTML = `
+                    <circle cx="86" cy="95" r="3.5" fill="#1E293B"/>
+                    <circle cx="114" cy="95" r="3.5" fill="#1E293B"/>
+                    <path d="M 120 97 Q 124 102 120 106 Q 116 102 120 97" fill="#38BDF8"/>
+                    <path d="M 80 89 L 92 86" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 108 86 L 120 89" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 94 107 Q 97 104 100 107 Q 103 110 106 107" fill="none" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+                `;
+    } else {
+      faceGroup.innerHTML = `
+                    <circle cx="86" cy="95" r="4" fill="#1E293B"/>
+                    <circle cx="114" cy="95" r="4" fill="#1E293B"/>
+                    <circle cx="84.5" cy="93.5" r="1.5" fill="#FFF"/>
+                    <circle cx="112.5" cy="93.5" r="1.5" fill="#FFF"/>
+                    <ellipse cx="78" cy="104" rx="5" ry="3" fill="#FCA5A5" opacity="0.7"/>
+                    <ellipse cx="122" cy="104" rx="5" ry="3" fill="#FCA5A5" opacity="0.7"/>
+                    <path d="M 93 105 Q 100 112 107 105" fill="none" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+                `;
+    }
+  }
+
+  function render() {
+    document.getElementById('bar-hungry').style.width = state.hungry + '%';
+    document.getElementById('bar-thirsty').style.width = state.thirsty + '%';
+    document.getElementById('bar-play').style.width = state.play + '%';
+    document.getElementById('bar-clean').style.width = state.clean + '%';
+
+    const avgStat = (state.hungry + state.thirsty + state.play + state.clean) / 4;
+    if (state.isNight) {
+      state.mood = 'alvó';
+    } else if (avgStat < 40 || state.hungry < 30 || state.thirsty < 30) {
+      state.mood = 'mérges';
+    } else if (avgStat < 75 || state.currentWish !== null) {
+      state.mood = 'szomorú';
+    } else {
+      state.mood = 'vidám';
+    }
+
+    const badge = document.getElementById('mood-badge');
+    badge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold transition-all text-white ';
+    if (state.mood === 'vidám') {
+      badge.innerText = 'Vidám 😊';
+      badge.classList.add('bg-emerald-500');
+    } else if (state.mood === 'szomorú') {
+      badge.innerText = 'Szomorú 🥺';
+      badge.classList.add('bg-amber-500');
+    } else if (state.mood === 'mérges') {
+      badge.innerText = 'Mérges 😡';
+      badge.classList.add('bg-rose-500');
+    } else if (state.mood === 'alvó') {
+      badge.innerText = 'Alszik 😴';
+      badge.classList.add('bg-indigo-500');
+    }
+
+    updateSheepFace(state.mood);
+
+    const lcd = document.getElementById('lcd-screen');
+    if (state.isNight) {
+      lcd.className = "w-full h-80 sm:h-96 rounded-2xl relative overflow-hidden transition-all duration-700 flex flex-col justify-between p-3 border-2 border-slate-700 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white";
+    } else {
+      lcd.className = "w-full h-80 sm:h-96 rounded-2xl relative overflow-hidden transition-all duration-700 flex flex-col justify-between p-3 border-2 border-slate-600/50 bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200 text-slate-800";
+    }
+
+    const wishBanner = document.getElementById('wish-banner');
+    const wishIcon = document.getElementById('wish-icon');
+    const wishText = document.getElementById('wish-text');
+    const sheepWrapper = document.getElementById('sheep-wrapper');
+    const propItem = document.getElementById('prop-item');
+
+    // Reset animations
+    sheepWrapper.className = "w-44 sm:w-52 h-44 sm:h-52 filter drop-shadow-md transition-transform duration-300 ";
+    propItem.className = "absolute text-4xl filter drop-shadow hidden z-10 transition-all ";
+
+    if (state.currentWish && !state.isNight) {
+      const wishObj = WISH_TYPES.find(w => w.id === state.currentWish);
+      if (wishObj) {
+        wishIcon.innerText = wishObj.icon;
+        wishText.innerText = `Kívánság: ${wishObj.name}!`;
+        wishBanner.classList.remove('hidden');
+        lcd.classList.add('alert-active');
+        propItem.classList.remove('hidden');
+
+        // Animation & Props mapping
+        if (state.currentWish === 'clean') {
+          sheepWrapper.classList.add('animate-toporgas');
+          propItem.innerText = '🚽';
+          propItem.classList.add('bottom-3', 'right-6');
+        } else if (state.currentWish === 'thirsty') {
+          sheepWrapper.classList.add('animate-sovargas');
+          propItem.innerText = '🥤';
+          propItem.classList.add('bottom-3', 'right-6');
+        } else if (state.currentWish === 'hungry') {
+          sheepWrapper.classList.add('animate-ehes-ugras');
+          propItem.innerText = '🥗';
+          propItem.classList.add('bottom-3', 'left-6');
+        } else if (state.currentWish === 'play') {
+          sheepWrapper.classList.add('animate-jatek-porges');
+          propItem.innerText = '⚽';
+          propItem.classList.add('bottom-3', 'right-6', 'animate-ball-bounce');
+        }
+      }
+    } else {
+      wishBanner.classList.add('hidden');
+      lcd.classList.remove('alert-active');
+      propItem.classList.add('hidden');
+      sheepWrapper.classList.add('animate-breathe');
+    }
+  }
+
+  let toastTimeout;
+  function showToast(msg) {
+    const toast = document.getElementById('toast-msg');
+    toast.innerText = msg;
+    toast.style.opacity = '1';
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast.style.opacity = '0';
+    }, 2500);
+  }
+
+  function handleAction(actionId) {
+    initAudio();
+    if (state.isNight) {
+      showToast('Pszt! A bárányka alszik (22:00 - 08:00). 🌙');
+      return;
+    }
+
+    const wishObj = WISH_TYPES.find(w => w.id === actionId);
+    if (state.currentWish === actionId) {
+      state[actionId] = 100;
+      state.currentWish = null;
+      playSound('happy');
+      playSound('baah');
+      showToast(`Nagyszerű! ${wishObj ? wishObj.actionMsg : ''} ✨`);
+    } else {
+      state[actionId] = Math.min(100, state[actionId] + 25);
+      playSound('happy');
+      showToast(wishObj ? wishObj.actionMsg : 'Gondoskodtál a bárányról!');
+    }
+    render();
+  }
+
+  function triggerNewWish() {
+    if (state.isNight) return;
+    const randomWish = WISH_TYPES[Math.floor(Math.random() * WISH_TYPES.length)];
+    state.currentWish = randomWish.id;
+    state[randomWish.id] = Math.max(10, state[randomWish.id] - 30);
+
+    playSound('alert');
+    playSound('baah');
+    sendSystemNotification(randomWish);
+    showToast(`A bárányka kérése: ${randomWish.name}! ${randomWish.icon}`);
+
+    render();
+  }
+
+  function updateClockAndLogic() {
+    const now = new Date();
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+    let seconds = now.getSeconds();
+
+    if (state.simulatedHour !== null) {
+      hours = state.simulatedHour;
+    }
+
+    const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    document.getElementById('clock-display').innerText = `🕒 ${formattedTime}`;
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    document.getElementById('date-display').innerText = `📅 ${year}.${month}.${day}.`;
+
+    if (state.startTime) {
+      const diffMs = Math.max(0, now.getTime() - state.startTime);
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hoursLeft = Math.floor((totalSeconds % 86400) / 3600);
+      const minsLeft = Math.floor((totalSeconds % 3600) / 60);
+      const secsLeft = totalSeconds % 60;
+
+      const lifetimeStr = `⏳ ${days}d ${String(hoursLeft).padStart(2, '0')}:${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
+      document.getElementById('lifetime-display').innerText = lifetimeStr;
+    }
+
+    const wasNight = state.isNight;
+    state.isNight = (hours >= 22 || hours < 8);
+
+    if (state.isNight && !wasNight) {
+      state.currentWish = null;
+      showToast('Jó éjszakát! A bárányka elaludt. 😴');
+    } else if (!state.isNight && wasNight) {
+      showToast('Jó reggelt! A bárányka felébredt. ☀️');
+    }
+
+    render();
+  }
+
+  function triggerFastForward() {
+    if (state.isNight) {
+      showToast('Éjszaka nincs kérés!');
+      return;
+    }
+    triggerNewWish();
+  }
+
+  // Periodic Decay
+  setInterval(() => {
+    if (!state.isNight) {
+      state.hungry = Math.max(0, state.hungry - 1);
+      state.thirsty = Math.max(0, state.thirsty - 1);
+      state.play = Math.max(0, state.play - 1);
+      state.clean = Math.max(0, state.clean - 1);
+      render();
+    }
+  }, 12000);
+
+  // 3 Wishes per hour (~20 mins)
+  setInterval(() => {
+    if (!state.isNight && !state.currentWish) {
+      triggerNewWish();
+    }
+  }, 20 * 60 * 1000);
+
+  // Catch up logic when returning from background
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      const now = Date.now();
+      const elapsedMins = (now - state.lastCheck) / (1000 * 60);
+      if (elapsedMins >= 20 && !state.isNight && !state.currentWish) {
+        triggerNewWish();
+      }
+      state.lastCheck = now;
+      render();
+    }
+  });
+
+  window.onload = function() {
+    initStartTime();
+    updateClockAndLogic();
+    setInterval(updateClockAndLogic, 1000);
+    render();
+
+    setTimeout(() => {
+      if (!state.isNight && !state.currentWish) {
+        triggerNewWish();
+      }
+    }, 2500);
+  };
+</script>
+</body>
+</html>
